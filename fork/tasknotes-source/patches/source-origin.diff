@@ -1,0 +1,336 @@
+diff --git a/src/bases/helpers.ts b/src/bases/helpers.ts
+index 99fdfc4..a00cc1a 100644
+--- a/src/bases/helpers.ts
++++ b/src/bases/helpers.ts
+@@ -12,6 +12,7 @@ import { normalizeDependencyList } from "../utils/dependencyUtils";
+ import { stringifyUnknown, stringifyUnknownArray } from "../utils/stringUtils";
+ import { createTaskNotesLogger } from "../utils/tasknotesLogger";
+ import { createElementInDocument } from "../utils/documentDom";
++import { hydrateTaskSourceOrigin } from "../utils/sourceOrigin";
+ 
+ const tasknotesLogger = createTaskNotesLogger({ tag: "Bases/Helpers" });
+ 
+@@ -233,7 +234,7 @@ function createTaskInfoFromProperties(
+ 		isBlocked = Array.isArray(props.blockedBy) && props.blockedBy.length > 0;
+ 	}
+ 
+-	return {
++	const taskInfo: TaskInfo = {
+ 		title:
+ 			toOptionalString(props.title) ||
+ 			basesItem.name ||
+@@ -281,6 +282,8 @@ function createTaskInfoFromProperties(
+ 		customProperties: Object.keys(customProperties).length > 0 ? customProperties : undefined,
+ 		basesData: basesItem.basesData,
+ 	};
++
++	return hydrateTaskSourceOrigin(taskInfo, props);
+ }
+ 
+ function mergeCustomProperties(
+@@ -303,6 +306,8 @@ function enrichTaskInfoFromCache(taskInfo: TaskInfo, plugin?: TaskNotesPlugin):
+ 	return {
+ 		...cachedTask,
+ 		basesData: taskInfo.basesData,
++		sourceNote: taskInfo.sourceNote ?? cachedTask.sourceNote,
++		sourceLine: taskInfo.sourceLine ?? cachedTask.sourceLine,
+ 		customProperties: mergeCustomProperties(
+ 			cachedTask.customProperties,
+ 			taskInfo.customProperties
+diff --git a/src/i18n/resources/en.ts b/src/i18n/resources/en.ts
+index 9a3a886..323f29d 100644
+--- a/src/i18n/resources/en.ts
++++ b/src/i18n/resources/en.ts
+@@ -3304,6 +3304,9 @@ export const en: TranslationTree = {
+ 			blockingBadge: "Blocking",
+ 			blockingBadgeTooltip: "This task is blocking another task",
+ 			blockingToggle: "Blocking {count} tasks",
++			sourceBadge: "Source",
++			sourceBadgeAria: "Open source note {name}",
++			sourceBadgeTooltip: "Open originating note: {path}",
+ 			priorityAriaLabel: "Priority: {label}",
+ 			taskOptions: "Task options",
+ 			recurrenceTooltip: "{label}: {value}",
+diff --git a/src/services/InstantTaskConvertService.ts b/src/services/InstantTaskConvertService.ts
+index 6df4048..ae9e832 100644
+--- a/src/services/InstantTaskConvertService.ts
++++ b/src/services/InstantTaskConvertService.ts
+@@ -802,6 +802,14 @@ export class InstantTaskConvertService {
+ 		const customFrontmatter: Record<string, unknown> = {
+ 			...(parsedData.customFrontmatter || {}),
+ 		};
++
++		// Always record the originating note + line for back-navigation from Task View
++		if (currentFile) {
++			customFrontmatter.source = currentFile.path;
++			if (typeof sourceLineNumber === "number" && sourceLineNumber >= 0) {
++				customFrontmatter.source_line = sourceLineNumber;
++			}
++		}
+ 		if (parsedData.userFields) {
+ 			for (const [fieldId, value] of Object.entries(parsedData.userFields)) {
+ 				// Find the user field definition to get the frontmatter key
+diff --git a/src/types.ts b/src/types.ts
+index 4ce5ed3..d94be65 100644
+--- a/src/types.ts
++++ b/src/types.ts
+@@ -496,6 +496,10 @@ export interface TaskInfo {
+ 	hasSubtasks?: boolean; // True if another task references this task as a project
+ 	details?: string; // Optional task body content
+ 	sortOrder?: string; // LexoRank string for ordering within column
++	/** Vault path or wikilink of the note this task was converted from */
++	sourceNote?: string;
++	/** 0-based line number in the source note at conversion time */
++	sourceLine?: number;
+ }
+ 
+ export interface TaskCreationData extends Partial<TaskInfo> {
+diff --git a/src/ui/taskCardMetadata.ts b/src/ui/taskCardMetadata.ts
+index 16eb9a2..35b1241 100644
+--- a/src/ui/taskCardMetadata.ts
++++ b/src/ui/taskCardMetadata.ts
+@@ -4,6 +4,11 @@ import type { TaskInfo } from "../types";
+ import { formatDateTimeForDisplay } from "../utils/dateUtils";
+ import { parseLinkToPath } from "../utils/linkUtils";
+ import { convertInternalToUserProperties, isPropertyForField } from "../utils/propertyMapping";
++import {
++	getSourceDisplayName,
++	getTaskSourceOrigin,
++	openTaskSourceOrigin,
++} from "../utils/sourceOrigin";
+ import {
+ 	getDefaultVisibleProperties,
+ 	renderPropertyMetadata,
+@@ -153,6 +158,38 @@ function createOccurrenceMetadataPill(config: RenderTaskCardMetadataConfig): HTM
+ 	return pill;
+ }
+ 
++function createSourceMetadataPill(config: RenderTaskCardMetadataConfig): HTMLElement | null {
++	const { metadataLine, task, plugin } = config;
++	const origin = getTaskSourceOrigin(task);
++	if (!origin) {
++		return null;
++	}
++
++	const displayName = getSourceDisplayName(origin.source);
++	const sourceLabel = plugin.i18n.translate("ui.taskCard.sourceBadge");
++	const pill = metadataLine.createSpan({
++		cls: "task-card__metadata-pill task-card__metadata-pill--source",
++	});
++	setIcon(pill, "file-symlink");
++	pill.createSpan({ text: `${sourceLabel}: ${displayName}` });
++	prepareInteractiveControl(pill);
++	pill.setAttribute(
++		"aria-label",
++		plugin.i18n.translate("ui.taskCard.sourceBadgeAria", { name: displayName })
++	);
++	setTooltip(
++		pill,
++		plugin.i18n.translate("ui.taskCard.sourceBadgeTooltip", { path: origin.source }),
++		{ placement: "top" }
++	);
++	pill.addEventListener("click", (event) => {
++		event.preventDefault();
++		event.stopPropagation();
++		void openTaskSourceOrigin(plugin, task);
++	});
++	return pill;
++}
++
+ export function renderTaskCardMetadata(config: RenderTaskCardMetadataConfig): HTMLElement[] {
+ 	const { metadataLine, task, plugin, visibleProperties, propertyOptions = {} } = config;
+ 	metadataLine.empty();
+@@ -164,6 +201,11 @@ export function renderTaskCardMetadata(config: RenderTaskCardMetadataConfig): HT
+ 		metadataElements.push(occurrencePill);
+ 	}
+ 
++	const sourcePill = createSourceMetadataPill(config);
++	if (sourcePill) {
++		metadataElements.push(sourcePill);
++	}
++
+ 	for (const propertyId of propertiesToShow) {
+ 		if (
+ 			isPropertyForField(propertyId, "status", plugin) ||
+diff --git a/src/utils/TaskManager.ts b/src/utils/TaskManager.ts
+index d89d52d..b3f4ac5 100644
+--- a/src/utils/TaskManager.ts
++++ b/src/utils/TaskManager.ts
+@@ -348,12 +348,18 @@ export class TaskManager extends Events {
+ 				isBlocked = Array.isArray(mappedTask.blockedBy) && mappedTask.blockedBy.length > 0;
+ 			}
+ 
++			const frontmatterRecord =
++				frontmatter !== null && typeof frontmatter === "object" && !Array.isArray(frontmatter)
++					? (frontmatter as Record<string, unknown>)
++					: null;
++
+ 			return buildTaskInfoFromMappedTask({
+ 				path,
+ 				mappedTask,
+ 				defaultTaskStatus: this.settings.defaultTaskStatus,
+ 				isBlocked,
+ 				blockingTasks,
++				frontmatter: frontmatterRecord,
+ 			});
+ 		} catch (error) {
+ 			tasknotesLogger.error(`Error extracting task info from native metadata for ${path}:`, {
+diff --git a/src/utils/taskInfoAssembly.ts b/src/utils/taskInfoAssembly.ts
+index 383ef28..84a9602 100644
+--- a/src/utils/taskInfoAssembly.ts
++++ b/src/utils/taskInfoAssembly.ts
+@@ -1,5 +1,6 @@
+ import type { TaskInfo } from "../types";
+ import { calculateTotalTimeSpent } from "./helpers";
++import { hydrateTaskSourceOrigin } from "./sourceOrigin";
+ 
+ export interface BuildTaskInfoFromMappedTaskInput {
+ 	path: string;
+@@ -7,6 +8,7 @@ export interface BuildTaskInfoFromMappedTaskInput {
+ 	defaultTaskStatus: string;
+ 	isBlocked: boolean;
+ 	blockingTasks: string[];
++	frontmatter?: Record<string, unknown> | null;
+ }
+ 
+ export function buildTaskInfoFromMappedTask({
+@@ -15,12 +17,13 @@ export function buildTaskInfoFromMappedTask({
+ 	defaultTaskStatus,
+ 	isBlocked,
+ 	blockingTasks,
++	frontmatter,
+ }: BuildTaskInfoFromMappedTaskInput): TaskInfo {
+ 	const totalTrackedTime = mappedTask.timeEntries
+ 		? calculateTotalTimeSpent(mappedTask.timeEntries)
+ 		: 0;
+ 
+-	return {
++	const assembled: TaskInfo = {
+ 		...mappedTask,
+ 		id: path,
+ 		path,
+@@ -36,4 +39,6 @@ export function buildTaskInfoFromMappedTask({
+ 		isBlocking: blockingTasks.length > 0,
+ 		blocking: blockingTasks.length > 0 ? blockingTasks : undefined,
+ 	};
++
++	return hydrateTaskSourceOrigin(assembled, frontmatter ?? mappedTask.customProperties);
+ }
+diff --git a/styles/task-card-bem.css b/styles/task-card-bem.css
+index cabc382..dc7a438 100644
+--- a/styles/task-card-bem.css
++++ b/styles/task-card-bem.css
+@@ -538,6 +538,24 @@ body.is-mobile .tasknotes-plugin .task-card.task-card--drag-handle-only .task-ca
+     height: 12px;
+ }
+ 
++.tasknotes-plugin .task-card__metadata-pill--source {
++    background: color-mix(in srgb, var(--text-muted) 8%, transparent);
++    color: var(--text-muted);
++    border-color: color-mix(in srgb, var(--text-muted) 30%, var(--background-modifier-border));
++    cursor: pointer;
++}
++
++.tasknotes-plugin .task-card__metadata-pill--source:hover {
++    color: var(--text-accent);
++    border-color: color-mix(in srgb, var(--interactive-accent) 35%, var(--background-modifier-border));
++    background: color-mix(in srgb, var(--interactive-accent) 10%, transparent);
++}
++
++.tasknotes-plugin .task-card__metadata-pill--source svg {
++    width: 12px;
++    height: 12px;
++}
++
+ /* Reminder indicator */
+ .tasknotes-plugin .task-card__reminder-indicator {
+     width: 14px;
+diff --git a/tests/unit/ui/taskCardMetadata.test.ts b/tests/unit/ui/taskCardMetadata.test.ts
+index f1329e2..4402f25 100644
+--- a/tests/unit/ui/taskCardMetadata.test.ts
++++ b/tests/unit/ui/taskCardMetadata.test.ts
+@@ -30,9 +30,13 @@ function createPlugin(): TaskNotesPlugin {
+ 			},
+ 			vault: {
+ 				getAbstractFileByPath: jest.fn(() => null),
++				read: jest.fn().mockResolvedValue(""),
+ 			},
+ 			workspace: {
+ 				openLinkText: jest.fn(),
++				getLeaf: jest.fn(() => ({
++					openFile: jest.fn().mockResolvedValue(undefined),
++				})),
+ 			},
+ 		},
+ 		fieldMapper: {
+@@ -48,11 +52,20 @@ function createPlugin(): TaskNotesPlugin {
+ 					"ui.taskCard.blockingBadge": "Blocking",
+ 					"ui.taskCard.blockingBadgeTooltip": "This task is blocking another task",
+ 					"ui.taskCard.googleCalendarSyncTooltip": "Synced to Google Calendar",
++					"ui.taskCard.sourceBadge": "Source",
++					"ui.taskCard.sourceBadgeAria": "Open source note {name}",
++					"ui.taskCard.sourceBadgeTooltip": "Open originating note: {path}",
+ 					"ui.taskCard.labels.due": "Due",
+ 					"ui.taskCard.labels.scheduled": "Scheduled",
+ 				};
+ 				if (translations[key]) {
+-					return translations[key];
++					let text = translations[key];
++					if (vars) {
++						for (const [name, value] of Object.entries(vars)) {
++							text = text.replace(`{${name}}`, String(value));
++						}
++					}
++					return text;
+ 				}
+ 				if (vars) {
+ 					return `${key} ${Object.values(vars).join(" ")}`;
+@@ -308,6 +321,48 @@ describe("taskCardMetadata", () => {
+ 		expect(parentClick).not.toHaveBeenCalled();
+ 	});
+ 
++	it("renders source origin as an interactive pill that does not open the card", async () => {
++		const sourceFile = { path: "Notes/Origin.md" };
++		const openFile = jest.fn().mockResolvedValue(undefined);
++		const plugin = createPlugin();
++		(plugin.app.vault.getAbstractFileByPath as jest.Mock).mockImplementation((path: string) =>
++			path === "Notes/Origin.md" ? sourceFile : null
++		);
++		(plugin.app.vault.read as jest.Mock).mockResolvedValue("- [[task]] from convert\n");
++		(plugin.app.workspace.getLeaf as jest.Mock).mockReturnValue({ openFile });
++
++		const { card, metadataLine } = createMetadataHost();
++		const parentClick = jest.fn();
++		card.addEventListener("click", parentClick);
++
++		const elements = renderTaskCardMetadata({
++			metadataLine,
++			card,
++			task: createTask({
++				sourceNote: "Notes/Origin.md",
++				sourceLine: 0,
++			}),
++			plugin,
++			visibleProperties: ["due"],
++			onBlockedByToggle: jest.fn(),
++		});
++
++		const sourcePill = metadataLine.querySelector<HTMLElement>(
++			".task-card__metadata-pill--source"
++		);
++		expect(elements).toEqual([sourcePill]);
++		expect(sourcePill?.textContent).toContain("Source: Origin");
++		expect(sourcePill?.getAttribute("role")).toBe("button");
++
++		sourcePill?.click();
++		await Promise.resolve();
++		await Promise.resolve();
++
++		expect(parentClick).not.toHaveBeenCalled();
++		expect(plugin.app.workspace.getLeaf).toHaveBeenCalledWith(false);
++		expect(openFile).toHaveBeenCalledWith(sourceFile, { eState: { line: 0 } });
++	});
++
+ 	it("clears stale metadata and hides the line when no configured property renders", () => {
+ 		const plugin = createPlugin();
+ 		const { card, metadataLine } = createMetadataHost();
