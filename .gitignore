@@ -4,9 +4,11 @@
 # npm
 node_modules
 
-# Don't include the compiled main.js file in the repo.
-# This will be uploaded to GitHub releases instead.
-main.js
+# Don't include the compiled main.js file in the repo root.
+# Official builds are uploaded to GitHub releases instead.
+# Personal fork builds under fork/ are tracked for BRAT/manual install.
+/main.js
+!fork/**/main.js
 
 # Exclude sourcemaps
 *.map
