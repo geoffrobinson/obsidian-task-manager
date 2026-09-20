@@ -1,0 +1,11 @@
+{
+	"id": "obsidian-task-manager-source",
+	"name": "Task Manager (Source Link)",
+	"version": "1.3.4-source.1",
+	"minAppVersion": "1.12.0",
+	"description": "Personal fork of Obsidian Task Manager with source-note backlinks: convert stores source_note/source_line; Source link opens the original note at the task wikilink.",
+	"author": "Antone Heyward",
+	"authorUrl": "https://github.com/antoneheyward",
+	"fundingUrl": "https://github.com/sponsors/antoneheyward",
+	"isDesktopOnly": false
+}
