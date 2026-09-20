@@ -1,43 +1,47 @@
-# Task Manager (Source Link) — personal fork
+# Task Manager — Source Link build (v1.4.0)
 
-Personal build of [Obsidian Task Manager](https://github.com/antoneheyward/obsidian-task-manager) **v1.3.4** that stores and opens the originating note for checklist→task conversions.
+Patched from your installed **Task Manager v1.4.0** files.
 
-> **License:** Upstream is all-rights-reserved. This fork is for **personal use** only. Do not redistribute without permission from the copyright holder.
+## What changed
 
-## What it adds
-
-When you convert a checklist item to a task (inline button, reading view, calendar drop, or Kanban drop), the new task file gets:
+On checklist → task conversion (inline button, reading view, calendar drop, Kanban drop), tasks get:
 
 ```yaml
 source_note: path/to/Original Note.md
-source_line: 12   # best-effort; wikilink search is preferred when opening
+source_line: 12
 ```
 
-Task chips (calendar / unscheduled) and Kanban cards show a **Source:** link. Clicking it:
+Calendar/unscheduled chips and Kanban cards show a **Source:** link. Clicking it:
 
-1. Does **not** open the edit modal (click is stopped from bubbling)
-2. Opens the source note
-3. Jumps to the line that contains `[[This Task]]` (works when one note spawned multiple tasks)
+- Does **not** open the edit modal (`stopPropagation`)
+- Opens the source note at the line containing `[[This Task]]`
 
-Clicking the rest of the chip still opens the edit modal.
+## Install (replace your current plugin)
 
-## Install (manual)
+Use the **same** plugin folder so your `data.json` settings are kept.
 
-1. Disable the official **Task Manager** plugin (or keep it disabled) to avoid ID conflicts — this fork uses id `obsidian-task-manager-source`.
-2. Copy this folder into your vault:
+1. Quit Obsidian (or disable Community plugins briefly).
+2. Disable / remove the separate `obsidian-task-manager-source` plugin if you installed the earlier fork.
+3. Copy these files over your existing install:
 
-   `Vault/.obsidian/plugins/obsidian-task-manager-source/`
+   `Vault/.obsidian/plugins/obsidian-task-manager/`
 
-   Files needed: `main.js`, `manifest.json`, `styles.css`
-3. Enable **Task Manager (Source Link)** in Community plugins.
+   - `main.js` (replace)
+   - `manifest.json` (replace)
+   - `styles.css` (replace)
+   - Keep your existing `data.json` (do **not** overwrite it)
 
-## Install (BRAT)
+4. Re-enable **Task Manager** and reload Obsidian.
 
-1. Publish this folder to a GitHub repo (or release) that includes `main.js`, `manifest.json`, and `styles.css` as release assets.
-2. In BRAT → Add Beta plugin → paste that repo URL.
-3. Enable the plugin.
+## Verify
+
+1. In a normal note: `- [ ] Source click test`
+2. Convert it to a task
+3. Open the new task file — confirm `source_note` is in frontmatter
+4. In Calendar/Kanban, click **only** the blue Source link → source note opens at that line
+5. Click the rest of the chip → edit modal still opens
 
 ## Notes
 
-- Tasks created **before** installing this fork will not have `source_note` until you add it manually or re-convert.
-- Opening prefers finding `[[task-basename]]` in the source file over the stored line number, so edits to the source note still land on the right wikilink.
+- Tasks created before this build won’t have `source_note` until you re-convert or add it manually.
+- Plugin id stays `obsidian-task-manager` (drop-in, not a second plugin).

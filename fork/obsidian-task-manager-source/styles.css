@@ -943,6 +943,12 @@
 	background: transparent;
 }
 
+@media (pointer: fine) {
+	.task-calendar-resize-handle-touch {
+		pointer-events: none;
+	}
+}
+
 
 /* Current time line */
 .task-calendar-now-line {
@@ -2016,6 +2022,13 @@
 }
 .kanban-backlog-chip-dragging { opacity: 0.4; cursor: grabbing; }
 
+/* Multi-select: chips picked for a group drag get an accent tint + ring. */
+.kanban-backlog-chip.is-selected {
+	background: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
 .kanban-backlog-chip-high  { border-left-color: var(--color-red); }
 .kanban-backlog-chip-medium { border-left-color: var(--color-orange); }
 
@@ -2272,6 +2285,29 @@
 .kanban-card-dragging {
 	opacity: 0.45;
 	cursor: grabbing;
+}
+
+/* Drop-position indicator: a line marking the slot a dragged card will land in.
+   Drawn above the card it would be inserted before, and as a trailing flex item on the
+   card list when the card would land at the very bottom. The card's own `position:
+   relative` anchors the absolutely positioned line into the 6px gap above it. */
+.kanban-card-drop-before::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: -4px;
+	height: 2px;
+	border-radius: 2px;
+	background: var(--interactive-accent);
+}
+
+.kanban-cards-drop-end::after {
+	content: "";
+	height: 2px;
+	border-radius: 2px;
+	background: var(--interactive-accent);
+	flex: none;
 }
 
 .kanban-card-completed { opacity: 0.55; }
@@ -4834,6 +4870,147 @@ li:focus-within .task-checklist-convert-btn { opacity: 1; }
 	flex: 1;
 }
 
+/* ── Tag input (chip editor + tag autocomplete, used by the task modals) ─── */
+.tm-tag-input-wrap {
+	position: relative;
+	width: 100%;
+}
+
+/* Mirrors .km-input's look, but grows in height as chips wrap onto new rows. */
+.tm-tag-input-box {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+	min-height: 34px;
+	padding: 4px 8px;
+	background: var(--background-modifier-form-field);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	cursor: text;
+	transition: border-color 0.12s;
+	box-sizing: border-box;
+}
+
+.tm-tag-input-box:focus-within {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb, 99, 102, 241), 0.15);
+}
+
+.tm-tag-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 4px 2px 8px;
+	font-size: 0.75em;
+	font-weight: 500;
+	color: var(--text-accent);
+	background-color: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+	border: 1px solid color-mix(in srgb, var(--interactive-accent) 30%, transparent);
+	border-radius: 10px;
+	white-space: nowrap;
+	max-width: 100%;
+}
+
+.tm-tag-chip-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.tm-tag-chip-remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	padding: 0;
+	flex: none;
+	background: transparent;
+	border: none;
+	border-radius: 50%;
+	box-shadow: none;
+	color: inherit;
+	opacity: 0.6;
+	cursor: pointer;
+}
+
+.tm-tag-chip-remove:hover {
+	opacity: 1;
+	background-color: color-mix(in srgb, var(--interactive-accent) 25%, transparent);
+}
+
+.tm-tag-chip-remove svg {
+	width: 11px;
+	height: 11px;
+}
+
+.tm-tag-input-field {
+	flex: 1 1 100px;
+	min-width: 100px;
+	height: 24px;
+	padding: 0;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	font-size: 0.9em;
+	color: var(--text-normal);
+}
+
+.tm-tag-input-field:focus {
+	outline: none;
+	border: none;
+	box-shadow: none;
+}
+
+.tm-tag-input-field::placeholder {
+	color: var(--text-faint);
+}
+
+.tm-tag-suggest-count {
+	flex: none;
+	font-size: 0.85em;
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Touch devices: chips and their × need real finger targets, and the suggestion
+   list gets more room since there's no hover to preview it. */
+@media (pointer: coarse) {
+	.tm-tag-input-box {
+		gap: 8px;
+		padding: 6px 8px;
+	}
+
+	.tm-tag-chip {
+		font-size: 0.85em;
+		padding: 4px 4px 4px 10px;
+	}
+
+	.tm-tag-chip-remove {
+		width: 22px;
+		height: 22px;
+	}
+
+	.tm-tag-chip-remove svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.tm-tag-input-field {
+		height: 30px;
+	}
+
+	.tm-tag-dropdown {
+		max-height: 40vh;
+	}
+
+	.tm-tag-dropdown .tm-autocomplete-item {
+		padding: 10px 12px;
+		font-size: 0.95em;
+	}
+}
+
 /* ── Tasks Table View ────────────────────────────────────────────────────── */
 .task-table-view-container {
 	padding: 24px;
@@ -5213,6 +5390,12 @@ li:focus-within .task-checklist-convert-btn { opacity: 1; }
 	align-items: center;
 	justify-content: flex-start;
 	height: auto;
+	/* Stretch each cell to the full row height. The row is a grid with align-items:center,
+	   which would otherwise size each cell to its content — collapsing an empty cell (e.g. a
+	   custom text/number column with no value yet) to 0px height and making it unclickable, so
+	   clicks fall through to the row and the inline editor never opens. Content stays vertically
+	   centered via this element's own flex align-items:center. */
+	align-self: stretch;
 	cursor: pointer;
 	font-size: 0.88em;
 	color: var(--text-normal);
@@ -5233,11 +5416,24 @@ li:focus-within .task-checklist-convert-btn { opacity: 1; }
 	position: relative;
 }
 
-.tm-table-title-open-btn {
+.tm-table-title-actions {
 	position: absolute;
 	right: 4px;
 	top: 50%;
 	transform: translateY(-50%);
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	opacity: 0;
+	transition: opacity 0.15s;
+	flex-shrink: 0;
+}
+
+.tm-table-cell-title:hover .tm-table-title-actions {
+	opacity: 1;
+}
+
+.tm-table-title-open-btn {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -5249,13 +5445,8 @@ li:focus-within .task-checklist-convert-btn { opacity: 1; }
 	background: var(--background-modifier-hover);
 	color: var(--text-muted);
 	cursor: pointer;
-	opacity: 0;
-	transition: opacity 0.15s, color 0.15s;
+	transition: color 0.15s, background 0.15s;
 	flex-shrink: 0;
-}
-
-.tm-table-cell-title:hover .tm-table-title-open-btn {
-	opacity: 1;
 }
 
 .tm-table-title-open-btn:hover {
@@ -5649,11 +5840,43 @@ li:focus-within .task-checklist-convert-btn { opacity: 1; }
 	justify-content: flex-start;
 }
 
+/* Tags stay on one line and are clipped horizontally at the cell edge by .tm-table-cell's
+   overflow:hidden, so widening the column simply reveals more of them. This must not wrap:
+   the cell height is fixed by the row, so wrapped rows of pills were clipped mid-pill
+   vertically — showing a half-height tag rather than a hidden one. */
 .tm-table-cell-tags {
 	display: flex;
 	align-items: center;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	gap: 4px;
+}
+
+/* Floating tag editor anchored to a tags cell; mirrors .tm-custom-datepicker's shell so
+   the table's two popovers look like one family. */
+.tm-tag-popover {
+	position: absolute;
+	width: 280px;
+	background-color: var(--background-floating, var(--background-primary));
+	border: 1px solid var(--background-modifier-border, var(--border-color, #ccc));
+	border-radius: 8px;
+	box-shadow: var(--shadow-l, 0 4px 16px rgba(0, 0, 0, 0.25));
+	padding: 8px;
+	z-index: 1000;
+	font-family: inherit;
+}
+
+/* Inside the popover the chip box IS the popover's content — its own border would read as
+   a redundant box-in-a-box. */
+.tm-tag-popover .tm-tag-input-box {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	padding: 0;
+}
+
+.tm-tag-popover .tm-tag-input-box:focus-within {
+	border: none;
+	box-shadow: none;
 }
 
 /* ── List-type custom column chips ───────────────────────────────────────── */
@@ -5675,15 +5898,28 @@ li:focus-within .task-checklist-convert-btn { opacity: 1; }
 	color: var(--text-muted);
 }
 
+/* Like .tm-table-cell-tags: one row of chips, clipped horizontally at the cell edge, so
+   widening the column reveals more of them. Must not wrap — the cell height is fixed by the
+   row, so a wrapped second row of chips would be clipped mid-chip vertically. */
 .tm-table-cell-list {
 	display: flex;
 	align-items: center;
-	/* Fixed-height cell clips overflow — keep chips on one row so the "+N"
-	   badge always stays visible instead of wrapping onto a clipped line
-	   (which happens with longer chip text, e.g. wikilink display names). */
 	flex-wrap: nowrap;
 	overflow: hidden;
 	gap: 4px;
+}
+
+/* .tm-list-chip lets chips shrink and ellipsis (min-width:0 + overflow:hidden) — right for the
+   popout, but in the compact cell it squeezes every chip to fit instead of clipping the row.
+   BOTH properties must be undone to restore natural width: a flex item's automatic minimum
+   size is min-content only while overflow is visible; any other overflow value forces that
+   minimum to 0, so min-width:auto alone would still collapse (CSS Sizing 3 §min-width:auto /
+   Flexbox §4.5). This is also why .tm-table-tag-pill keeps its width without either property —
+   it never sets overflow. The popout lives on document.body, so this child selector can't
+   reach its chips. */
+.tm-table-cell-list > .tm-list-chip {
+	min-width: auto;
+	overflow: visible;
 }
 
 .tm-list-chip {
@@ -5737,21 +5973,6 @@ li:focus-within .task-checklist-convert-btn { opacity: 1; }
 }
 
 /* Compact cell display for list columns */
-.tm-list-overflow-badge {
-	display: inline-flex;
-	align-items: center;
-	/* Never let the shrinking chips squeeze this out — it must stay visible
-	   so the user can always see how many items are hidden. */
-	flex-shrink: 0;
-	padding: 2px 5px;
-	font-size: 0.75em;
-	font-weight: 500;
-	color: var(--text-muted);
-	background: var(--background-modifier-hover);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-}
-
 .tm-list-empty-hint {
 	color: var(--text-faint);
 	font-size: 0.85em;
@@ -6971,6 +7192,14 @@ body:has(.tm-list-popout) .suggestion-container {
 .task-checklist-text-col { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .task-checklist-meta { font-size: 0.75em; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .task-checklist-item-row:active { cursor: grabbing; }
+/* Multi-select: checklist chips picked for a group drag get an accent tint + ring.
+   Doubled class (0-3-0) so it beats the base .task-calendar-unscheduled-card
+   .task-calendar-unscheduled-card rule (0-2-0), which otherwise re-sets background/box-shadow. */
+.task-checklist-item-row.task-checklist-item-row.is-selected {
+	background: var(--background-modifier-hover);
+	box-shadow: 0 0 0 2px var(--interactive-accent);
+	border-radius: 4px;
+}
 .task-checklist-file-header { cursor: default; }
 .task-checklist-file-header:hover { background: var(--background-modifier-hover); }
 .task-checklist-chevron { cursor: pointer; flex-shrink: 0; }
@@ -7605,8 +7834,7 @@ body:has(.tm-list-popout) .suggestion-container {
 
 /* Source note backlink */
 .task-calendar-chip-source-meta,
-.task-source-meta,
-.kanban-card-meta-item.task-source-meta {
+.task-source-meta {
   display: block;
   margin-top: 2px;
   font-size: 11px;
@@ -7616,7 +7844,6 @@ body:has(.tm-list-popout) .suggestion-container {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.task-source-label { color: var(--text-muted); }
 a.task-source-link {
   color: var(--link-color, var(--interactive-accent));
   text-decoration: underline;
@@ -7624,7 +7851,4 @@ a.task-source-link {
 }
 a.task-source-link:hover {
   color: var(--link-color-hover, var(--interactive-accent-hover));
-}
-.task-calendar-task-chip .task-calendar-chip-source-meta {
-  padding-left: 2px;
 }
