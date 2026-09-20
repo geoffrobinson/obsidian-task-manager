@@ -1,9 +1,9 @@
 {
 	"id": "tasknotes",
 	"name": "TaskNotes",
-	"version": "4.13.2-source.1",
+	"version": "4.13.2-source.2",
 	"minAppVersion": "1.12.2",
-	"description": "Note-based task management with calendar, pomodoro and time-tracking integration. Personal build: stores source note/line on convert; Source pills open the originating note at the task wikilink line.",
+	"description": "Note-based task management with calendar, pomodoro and time-tracking. Personal build: stores source/source_line on convert; Alt+Click or Source pill / command opens originating note (single/double-click settings unchanged).",
 	"author": "Callum Alpass",
 	"authorUrl": "https://github.com/callumalpass",
 	"isDesktopOnly": false

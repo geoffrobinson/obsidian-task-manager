@@ -1,44 +1,42 @@
-# TaskNotes — Source Origin build (v4.13.2-source.1)
+# TaskNotes — Source Origin build (v4.13.2-source.2)
 
-Personal build of [TaskNotes](https://github.com/callumalpass/tasknotes) **4.13.2** that stores the originating note on convert and opens it from Task View.
+Personal build of [TaskNotes](https://github.com/callumalpass/tasknotes) **4.13.2**.
 
 ## What changed
 
-On checklist → task conversion (inline convert), tasks get:
+On checklist → task conversion, tasks get:
 
 ```yaml
 source: path/to/Original Note.md
 source_line: 12
 ```
 
-Task cards show a **Source:** pill. Clicking it:
+### Opening the source note (no conflict with edit)
 
-- Does **not** open the edit modal (`stopPropagation`)
-- Opens the source note at the line containing `[[This Task]]` (falls back to stored `source_line`)
+Single-click / double-click stay controlled by **Settings → TaskNotes → Task interaction**.
 
-## Install (replace your current TaskNotes)
+| Action | Opens source note |
+| --- | --- |
+| **Alt + Click** on a task card | Yes (when `source` is set) |
+| **Alt + Middle-click** | Yes, in a new tab |
+| **Source:** metadata pill | Yes |
+| Right-click → **Open source note** | Yes |
+| Command **Open current task source note** | Yes (bind any hotkey in Obsidian) |
 
-Use the **same** plugin folder so your `data.json` settings are kept.
+This avoids the race where a Source-pill click sometimes also fired the card’s delayed single-click → edit modal.
 
-1. Quit Obsidian (or disable Community plugins briefly).
-2. Copy these files over your existing install:
+## Install
 
-   `Vault/.obsidian/plugins/tasknotes/`
+Copy over your existing folder (keeps `data.json`):
 
-   - `main.js` (replace)
-   - `manifest.json` (replace)
-   - `styles.css` (replace)
+`Vault/.obsidian/plugins/tasknotes/`
 
-3. Re-enable TaskNotes / restart Obsidian.
-
-Existing converted tasks without `source` / `source_line` will not show a Source pill until re-converted (or you add those fields manually).
+- `main.js`
+- `manifest.json`
+- `styles.css`
 
 ## Verify
 
-1. In a normal note, convert a checklist item to a TaskNotes task.
-2. Open the new task note — frontmatter should include `source` and `source_line`.
-3. In Task View / Bases Task cards, click **Source: …** — the original note should open at the task wikilink line.
-
-## Source patches
-
-`patches/` contains the TaskNotes source diff and the new `sourceOrigin` helper/tests for reproducibility.
+1. Convert a checklist item → task.
+2. Confirm frontmatter has `source` / `source_line`.
+3. In Task View: **Alt+Click** the card, or click the **Source:** pill, or run the command.
