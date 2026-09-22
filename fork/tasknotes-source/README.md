@@ -1,6 +1,6 @@
-# TaskNotes — Source Origin build (v4.13.2-source.2)
+# TaskNotes — Source Origin build (v4.13.4-source.1)
 
-Personal build of [TaskNotes](https://github.com/callumalpass/tasknotes) **4.13.2**.
+Personal build of [TaskNotes](https://github.com/callumalpass/tasknotes) **4.13.4**.
 
 ## What changed
 
@@ -23,17 +23,19 @@ Single-click / double-click stay controlled by **Settings → TaskNotes → Task
 | Right-click → **Open source note** | Yes |
 | Command **Open current task source note** | Yes (bind any hotkey in Obsidian) |
 
-This avoids the race where a Source-pill click sometimes also fired the card’s delayed single-click → edit modal.
+Pending card click timers are cancelled when interacting with the Source pill so the edit modal does not race the source open.
 
 ## Install
 
-Copy over your existing folder (keeps `data.json`):
+Copy over your existing folder (keeps your `data.json` settings):
 
 `Vault/.obsidian/plugins/tasknotes/`
 
-- `main.js`
-- `manifest.json`
-- `styles.css`
+- `main.js` *(replace)*
+- `manifest.json` *(replace)*
+- `styles.css` *(replace)*
+
+Do **not** replace `data.json` — keep your vault settings.
 
 ## Verify
 
