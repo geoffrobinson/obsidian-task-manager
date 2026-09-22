@@ -1,0 +1,11 @@
+{
+	"id": "obsidian-task-manager",
+	"name": "Task Manager",
+	"version": "1.4.0-source.1",
+	"minAppVersion": "1.12.0",
+	"description": "Local task management with markdown files and Google Calendar integration. Personal build: Source links open the originating note at the task wikilink line.",
+	"author": "Antone Heyward",
+	"authorUrl": "https://github.com/antoneheyward",
+	"fundingUrl": "https://github.com/sponsors/antoneheyward",
+	"isDesktopOnly": false
+}
